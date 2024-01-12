@@ -1,4 +1,4 @@
-import { Stack, StackProps } from "aws-cdk-lib";
+import { CfnOutput, Stack, StackProps } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { IdealOctoWaffleLambda } from "./constructs/lambda";
 import { IdealOctoWaffleDynamoTable } from "./constructs/dynamo";
@@ -62,7 +62,7 @@ export class IdealOctoWaffleStack extends Stack {
     //////////////////////////////////////////////////  API KEY  ///////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    const apiPlan = api.addUsagePlan(`${PREFIX}-bff-api-usage-plan`, {
+    const apiPlan = api.addUsagePlan(`${PREFIX}-api-usage-plan`, {
       name: "Basic Usage Plan",
       throttle: {
         rateLimit: 10,
@@ -70,9 +70,14 @@ export class IdealOctoWaffleStack extends Stack {
       }
     });
 
-    const key = api.addApiKey(`${PREFIX}-bff-api-key`, {
-      apiKeyName: `${PREFIX}-bff-api-key`
+    const key = api.addApiKey(`${PREFIX}-api-key`, {
+      apiKeyName: `${PREFIX}-api-key`
     });
     apiPlan.addApiKey(key);
+
+    new CfnOutput(this, `apiKeyId`, {
+      value: key.keyId,
+      exportName: "apiKeyId"
+    });
   }
 }
