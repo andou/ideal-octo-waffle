@@ -6,7 +6,7 @@ import {
   ScanCommand,
   ScanCommandInput
 } from "@aws-sdk/client-dynamodb";
-import { marshall } from "@aws-sdk/util-dynamodb";
+import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { AppLambda, LambdaInterface, logger, metrics, tracer } from "../common/powertools";
 
 const TABLE_NAME = process.env.TABLE_NAME || "";
@@ -49,7 +49,7 @@ class Lambda extends AppLambda implements LambdaInterface {
       return {
         statusCode: product.length ? 200 : 404,
         body: JSON.stringify({
-          product
+          ...product.pop()
         })
       };
     }
@@ -72,11 +72,15 @@ class Lambda extends AppLambda implements LambdaInterface {
         ":sku": `${sku}`
       })
     };
-
+    const products: TProduct[] = [];
     const productsReq = await dynamodbClient.send(new QueryCommand(queryParams));
-    const products = productsReq.Items as unknown;
+    if (productsReq.Items) {
+      (productsReq.Items || []).forEach(function (element) {
+        products.push(unmarshall(element) as TProduct);
+      });
+    }
 
-    return (products as TProduct[]) || [];
+    return products;
   }
 
   @tracer.captureMethod()
@@ -85,10 +89,15 @@ class Lambda extends AppLambda implements LambdaInterface {
       TableName: TABLE_NAME
     };
 
+    const products: TProduct[] = [];
     const productsReq = await dynamodbClient.send(new ScanCommand(queryParams));
-    const products = productsReq.Items as unknown;
+    if (productsReq.Items) {
+      (productsReq.Items || []).forEach(function (element) {
+        products.push(unmarshall(element) as TProduct);
+      });
+    }
 
-    return (products as TProduct[]) || [];
+    return products;
   }
 }
 
