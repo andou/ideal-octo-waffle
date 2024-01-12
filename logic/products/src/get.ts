@@ -7,7 +7,7 @@ import {
   ScanCommandInput
 } from "@aws-sdk/client-dynamodb";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
-import { AppLambda, LambdaInterface, logger, metrics, tracer } from "../common/powertools";
+import { AppLambda, LambdaInterface, logger, metrics, tracer } from "../../common/powertools";
 
 const TABLE_NAME = process.env.TABLE_NAME || "";
 
