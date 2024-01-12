@@ -2,7 +2,7 @@ import { CfnOutput, Stack, StackProps } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { IdealOctoWaffleLambda } from "./constructs/lambda";
 import { IdealOctoWaffleDynamoTable } from "./constructs/dynamo";
-import { LambdaIntegration, RestApi } from "aws-cdk-lib/aws-apigateway";
+import { ApiKeySourceType, LambdaIntegration, RestApi } from "aws-cdk-lib/aws-apigateway";
 import { AttributeType } from "aws-cdk-lib/aws-dynamodb";
 import { PolicyStatement, Effect } from "aws-cdk-lib/aws-iam";
 import { PREFIX, REGION } from "./configs";
@@ -16,6 +16,7 @@ export class IdealOctoWaffleStack extends Stack {
 
     const api = new RestApi(this, "api", {
       restApiName: "IdealOctoWaffle",
+      apiKeySourceType: ApiKeySourceType.HEADER,
       description: "IdealOctoWaffle / Description",
       deployOptions: {
         stageName: "dev"
@@ -78,7 +79,13 @@ export class IdealOctoWaffleStack extends Stack {
       throttle: {
         rateLimit: 10,
         burstLimit: 2
-      }
+      },
+      apiStages: [
+        {
+          api,
+          stage: api.deploymentStage
+        }
+      ]
     });
 
     const key = api.addApiKey(`${PREFIX}-api-key`, {
@@ -89,6 +96,11 @@ export class IdealOctoWaffleStack extends Stack {
     new CfnOutput(this, `apiKeyId`, {
       value: key.keyId,
       exportName: "apiKeyId"
+    });
+
+    new CfnOutput(this, `restApiId`, {
+      value: api.restApiId,
+      exportName: "restApiId"
     });
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

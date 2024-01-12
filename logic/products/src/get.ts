@@ -39,11 +39,12 @@ class Lambda extends AppLambda implements LambdaInterface {
       };
     } else {
       const product = await this.getProductBySku(sku as string);
+      const res = product.length ? product.pop() : {};
 
       return {
-        statusCode: product.length ? 200 : 404,
+        statusCode: product[`${sku}`] ? 200 : 404,
         body: JSON.stringify({
-          ...product.pop()
+          ...res
         })
       };
     }
@@ -66,15 +67,21 @@ class Lambda extends AppLambda implements LambdaInterface {
         ":sku": `${sku}`
       })
     };
-    const products: TProduct[] = [];
+    const products: Record<string, TProduct> = {};
     const productsReq = await dynamodbClient.send(new QueryCommand(queryParams));
     if (productsReq.Items) {
       (productsReq.Items || []).forEach(function (element) {
-        products.push(unmarshall(element) as TProduct);
+        const el = unmarshall(element) as TProduct;
+        if (products[el.sku] !== undefined) {
+          products[el.sku] = { ...products[el.sku], ...el };
+        } else {
+          products[el.sku] = el;
+        }
+        delete products[el.sku]["sk"];
       });
     }
 
-    return products;
+    return Object.values(products);
   }
 
   @tracer.captureMethod()
@@ -83,15 +90,21 @@ class Lambda extends AppLambda implements LambdaInterface {
       TableName: TABLE_NAME
     };
 
-    const products: TProduct[] = [];
+    const products: Record<string, TProduct> = {};
     const productsReq = await dynamodbClient.send(new ScanCommand(queryParams));
     if (productsReq.Items) {
       (productsReq.Items || []).forEach(function (element) {
-        products.push(unmarshall(element) as TProduct);
+        const el = unmarshall(element) as TProduct;
+        if (products[el.sku] !== undefined) {
+          products[el.sku] = { ...products[el.sku], ...el };
+        } else {
+          products[el.sku] = el;
+        }
+        delete products[el.sku]["sk"];
       });
     }
 
-    return products;
+    return Object.values(products);
   }
 }
 
