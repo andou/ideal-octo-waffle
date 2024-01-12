@@ -1,13 +1,15 @@
 import { Stack, StackProps } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { IdealOctoWaffleLambda } from "./constructs/lambda";
+import { IdealOctoWaffleDynamoTable } from "./constructs/dynamo";
 import { LambdaIntegration, RestApi } from "aws-cdk-lib/aws-apigateway";
+import { AttributeType } from "aws-cdk-lib/aws-dynamodb";
+import { PolicyStatement, Effect } from "aws-cdk-lib/aws-iam";
+import { PREFIX } from "./configs";
 
 export class IdealOctoWaffleStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
-
-    const hello = new IdealOctoWaffleLambda(this, "hello-world-handler", "./lib/lambdas/hello/index.ts", {});
 
     const api = new RestApi(this, "api", {
       restApiName: "IdealOctoWaffle",
@@ -23,8 +25,54 @@ export class IdealOctoWaffleStack extends Stack {
       }
     });
 
-    const resource = api.root.addResource("products");
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////  PRODUCTS  //////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    resource.addMethod("GET", new LambdaIntegration(hello.lambda, { proxy: true }));
+    const productsDynamoTable = new IdealOctoWaffleDynamoTable(this, "products", {
+      name: "sku",
+      type: AttributeType.STRING
+    });
+
+    const productsGetLambda = new IdealOctoWaffleLambda(this, "products", `products`, `get.ts`, {
+      TABLE_NAME: productsDynamoTable.name
+    });
+
+    productsGetLambda.role.addToPolicy(
+      new PolicyStatement({
+        effect: Effect.ALLOW,
+        actions: ["dynamodb:Query", "dynamodb:Scan"],
+        resources: [productsDynamoTable.arn]
+      })
+    );
+
+    api.root
+      .resourceForPath("/products/")
+      .addMethod("GET", new LambdaIntegration(productsGetLambda.lambda, { proxy: true }), {
+        apiKeyRequired: true
+      });
+
+    api.root
+      .resourceForPath("/products/{sku}")
+      .addMethod("GET", new LambdaIntegration(productsGetLambda.lambda, { proxy: true }), {
+        apiKeyRequired: true
+      });
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////  API KEY  ///////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    const apiPlan = api.addUsagePlan(`${PREFIX}-bff-api-usage-plan`, {
+      name: "Basic Usage Plan",
+      throttle: {
+        rateLimit: 10,
+        burstLimit: 2
+      }
+    });
+
+    const key = api.addApiKey(`${PREFIX}-bff-api-key`, {
+      apiKeyName: `${PREFIX}-bff-api-key`
+    });
+    apiPlan.addApiKey(key);
   }
 }

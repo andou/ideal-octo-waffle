@@ -1,10 +1,12 @@
 import { Construct } from "constructs";
 import { LAMBDA_TRACING, PREFIX, PROJECT_NAME, REGION, RETENTION_PERIOD } from "../configs";
+
 import { Runtime } from "aws-cdk-lib/aws-lambda";
 import { Duration, RemovalPolicy } from "aws-cdk-lib";
 import { LogGroup } from "aws-cdk-lib/aws-logs";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import { Effect, PolicyStatement, Role, ServicePrincipal } from "aws-cdk-lib/aws-iam";
+import { LAMBDA_ROOT_DIR, LAMBDA_SRC_DIR } from "../configs/lambda_runtime";
 
 const commonNodeJsProps = {
   runtime: Runtime.NODEJS_18_X,
@@ -44,7 +46,8 @@ export class IdealOctoWaffleLambda extends Construct {
   constructor(
     scope: Construct,
     id: string,
-    entry: string,
+    folder: string,
+    handler = "index.ts",
     environment?:
       | {
           [key: string]: string;
@@ -53,7 +56,7 @@ export class IdealOctoWaffleLambda extends Construct {
     lambdaName = id,
     timeout: Duration | undefined = undefined
   ) {
-    super(scope, id);
+    super(scope, `${id}-lmb`);
 
     this.lambdaName = `${PREFIX}-${lambdaName}`;
 
@@ -70,7 +73,8 @@ export class IdealOctoWaffleLambda extends Construct {
 
     this.lambda = new NodejsFunction(this, lambdaName, {
       ...commonNodeJsProps,
-      entry,
+      entry: `./${LAMBDA_ROOT_DIR}/${folder}/${LAMBDA_SRC_DIR}/${handler}`,
+      depsLockFilePath: `./${LAMBDA_ROOT_DIR}/${folder}/yarn.lock`,
       environment: {
         ...environment,
         SERVICE_NAME: this.lambdaName,

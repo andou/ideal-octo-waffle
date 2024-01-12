@@ -2,3 +2,5 @@ project_name: ideal-octo-waffle
 component_name: main
 tracing: Active
 owner: a.pastorino
+lambda_root_dir: logic
+lambda_src_dir: src
