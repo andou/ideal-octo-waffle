@@ -59,3 +59,9 @@ cdk deploy --outputs-file ./cdk-outputs.json
 ```
 aws apigateway get-api-key --api-key $(cat cdk-outputs.json | jq -r '."ideal-octo-waffle-dev-main-stack".apiKeyId') --include-value | jq -r '.value'
 ```
+
+### Retrieve the bucket S3 where to upload files
+
+```
+cat cdk-outputs.json | jq -r '."ideal-octo-waffle-dev-main-stack".s3UrlForObject'
+```

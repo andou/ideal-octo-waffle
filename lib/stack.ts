@@ -5,7 +5,10 @@ import { IdealOctoWaffleDynamoTable } from "./constructs/dynamo";
 import { LambdaIntegration, RestApi } from "aws-cdk-lib/aws-apigateway";
 import { AttributeType } from "aws-cdk-lib/aws-dynamodb";
 import { PolicyStatement, Effect } from "aws-cdk-lib/aws-iam";
-import { PREFIX } from "./configs";
+import { PREFIX, REGION } from "./configs";
+import { IdealOctoWaffleS3 } from "./constructs/s3";
+import { EventType } from "aws-cdk-lib/aws-s3";
+import { S3EventSource } from "aws-cdk-lib/aws-lambda-event-sources";
 
 export class IdealOctoWaffleStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -78,6 +81,42 @@ export class IdealOctoWaffleStack extends Stack {
     new CfnOutput(this, `apiKeyId`, {
       value: key.keyId,
       exportName: "apiKeyId"
+    });
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////  IMPORT  ///////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    const importBucket = new IdealOctoWaffleS3(this, "import");
+    const importLambda = new IdealOctoWaffleLambda(this, "import", `import`, `index.ts`, {
+      TABLE_NAME: productsDynamoTable.name,
+      BATCH_WRITE_ITEM_MAX: "25",
+      REGION
+    });
+    const s3ImportEventSource = new S3EventSource(importBucket.bucket, {
+      events: [EventType.OBJECT_CREATED_PUT]
+    });
+    importLambda.lambda.addEventSource(s3ImportEventSource);
+
+    importLambda.lambda.addToRolePolicy(
+      new PolicyStatement({
+        effect: Effect.ALLOW,
+        actions: ["s3:GetObject", "s3:GetObjectVersion"],
+        resources: [importBucket.bucket.bucketArn, `${importBucket.bucket.bucketArn}/*`]
+      })
+    );
+
+    importLambda.role.addToPolicy(
+      new PolicyStatement({
+        effect: Effect.ALLOW,
+        actions: ["dynamodb:BatchWriteItem"],
+        resources: [productsDynamoTable.arn]
+      })
+    );
+
+    new CfnOutput(this, `s3UrlForObject`, {
+      value: importBucket.bucket.s3UrlForObject(),
+      exportName: "s3UrlForObject"
     });
   }
 }

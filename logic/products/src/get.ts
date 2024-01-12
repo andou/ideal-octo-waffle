@@ -8,17 +8,11 @@ import {
 } from "@aws-sdk/client-dynamodb";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { AppLambda, LambdaInterface, logger, metrics, tracer } from "../../common/powertools";
+import { TProduct } from "../../common/types";
 
 const TABLE_NAME = process.env.TABLE_NAME || "";
 
 const dynamodbClient = tracer.captureAWSv3Client(new DynamoDBClient({}));
-
-type TProduct = {
-  sku: string;
-  name: string;
-  price: number;
-  quantity: number;
-};
 
 class Lambda extends AppLambda implements LambdaInterface {
   @tracer.captureLambdaHandler({ captureResponse: false })
