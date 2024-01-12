@@ -149,3 +149,11 @@ The data import performs a synchronous reading of the CSV file uploaded to S3 be
 ### Sync batch write
 
 Once the file is parsed, the data is inserted into DynamoDB by the same Lambda through a batch write. It would be better if the records were sent to an SQS queue to be dequeued by another Lambda, which would then perform the writing to DynamoDB.
+
+### Code cleaning and test
+
+The code probably needs a cleanup and definitely needs unit tests.
+
+### Deployment pipeline
+
+I haven't had the time to set up a pipeline for deploying the solution; you must rely on your own CLI, at the moment.
