@@ -4,6 +4,7 @@ import { BatchWriteItemCommand, BatchWriteItemCommandInput, DynamoDBClient } fro
 import { GetObjectCommand, GetObjectCommandInput, GetObjectCommandOutput, S3Client } from "@aws-sdk/client-s3";
 import { marshall } from "@aws-sdk/util-dynamodb";
 import { TProductImport, TStockImport } from "../../common/types";
+import { parse } from "csv-parse/sync";
 
 const dynamodbClient = tracer.captureAWSv3Client(new DynamoDBClient({}));
 const batchWriteItemMax = Number(process.env.BATCH_WRITE_ITEM_MAX || "25");
@@ -14,7 +15,9 @@ const s3Client = tracer.captureAWSv3Client(
     region: process.env.REGION
   })
 );
-
+interface ILine {
+  sk: string;
+}
 class Lambda extends AppLambda implements LambdaInterface {
   @tracer.captureLambdaHandler({ captureResponse: false })
   @logger.injectLambdaContext({ logEvent: true })
@@ -31,12 +34,34 @@ class Lambda extends AppLambda implements LambdaInterface {
           const importType = splittedObjectKey[0];
           if (importType === "products") {
             const file = await this.getS3Object(record.s3.bucket.name, objectKey);
-            const data = JSON.parse(file) as Array<TProductImport>;
-            await this.persistProduct(data);
+            const records: TProductImport[] = parse(file, {
+              delimiter: ",",
+              columns: true,
+              skip_empty_lines: true,
+              on_record: (line: ILine) => {
+                line.sk = "data";
+                return line;
+              }
+            }) as TProductImport[];
+            logger.info("records", { records });
+
+            await this.persistData(records);
           } else if (importType === "stock") {
             const file = await this.getS3Object(record.s3.bucket.name, objectKey);
-            const data = JSON.parse(file) as Array<TStockImport>;
-            await this.updateStock(data);
+
+            const records: TStockImport[] = parse(file, {
+              delimiter: ",",
+              columns: true,
+              skip_empty_lines: true,
+              on_record: (line: ILine) => {
+                line.sk = "stock";
+                return line;
+              }
+            }) as TStockImport[];
+
+            logger.info("records", { records });
+
+            await this.persistData(records);
           }
         }
       }
@@ -63,23 +88,7 @@ class Lambda extends AppLambda implements LambdaInterface {
   }
 
   @tracer.captureMethod()
-  public async updateStock(data: Array<TStockImport>): Promise<void> {
-    const itemsBatchesNumber = Math.ceil(data.length / batchWriteItemMax);
-    logger.debug(`${data.length} / ${batchWriteItemMax} = ${itemsBatchesNumber} batches`);
-    for (let batchIndex = 0; batchIndex < itemsBatchesNumber; batchIndex++) {
-      const batchItems = data.slice(batchWriteItemMax * batchIndex, batchWriteItemMax * (batchIndex + 1));
-      const command = new BatchWriteItemCommand(this.marshallData(batchItems));
-      const res = await dynamodbClient.send(command);
-      if (res.UnprocessedItems) {
-        const unprocessedItems = res.UnprocessedItems;
-        logger.debug("UnprocessedItems ->", { unprocessedItems });
-      }
-    }
-    return;
-  }
-
-  @tracer.captureMethod()
-  public async persistProduct(data: Array<TProductImport>): Promise<void> {
+  public async persistData(data: Array<TProductImport | TStockImport>): Promise<void> {
     const itemsBatchesNumber = Math.ceil(data.length / batchWriteItemMax);
     logger.debug(`${data.length} / ${batchWriteItemMax} = ${itemsBatchesNumber} batches`);
     for (let batchIndex = 0; batchIndex < itemsBatchesNumber; batchIndex++) {

@@ -32,10 +32,18 @@ export class IdealOctoWaffleStack extends Stack {
     //////////////////////////////////////////////////  PRODUCTS  //////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    const productsDynamoTable = new IdealOctoWaffleDynamoTable(this, "products", {
-      name: "sku",
-      type: AttributeType.STRING
-    });
+    const productsDynamoTable = new IdealOctoWaffleDynamoTable(
+      this,
+      "products-tbl",
+      {
+        name: "sku",
+        type: AttributeType.STRING
+      },
+      {
+        name: "sk",
+        type: AttributeType.STRING
+      }
+    );
 
     const productsGetLambda = new IdealOctoWaffleLambda(this, "products", `products`, `get.ts`, {
       TABLE_NAME: productsDynamoTable.name

@@ -7,11 +7,13 @@ export type TProduct = {
 
 export type TProductImport = {
   sku: string;
+  sk: string;
   name: string;
   price: number;
 };
 
 export type TStockImport = {
   sku: string;
+  sk: string;
   quantity: number;
 };

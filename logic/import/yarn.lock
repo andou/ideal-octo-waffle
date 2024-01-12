@@ -1199,6 +1199,11 @@ commander@^3.0.2:
   resolved "https://registry.yarnpkg.com/commander/-/commander-3.0.2.tgz#6837c3fb677ad9933d1cfba42dd14d5117d6b39e"
   integrity sha512-Gar0ASD4BDyKC4hl4DwHqDrmvjoxWKZigVnAbn5H1owvm4CxCPdb0HQDehwNYMJpla5+M2tPmPARzhtYuwpHow==
 
+csv-parse@^5.5.3:
+  version "5.5.3"
+  resolved "https://registry.yarnpkg.com/csv-parse/-/csv-parse-5.5.3.tgz#0261050761ee46cd0e46421854bf9bf4de1317bf"
+  integrity sha512-v0KW6C0qlZzoGjk6u5tLmVfyZxNgPGXZsWTXshpAgKVGmGXzaVWGdlCFxNx5iuzcXT/oJN1HHM9DZKwtAtYa+A==
+
 define-data-property@^1.1.1:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/define-data-property/-/define-data-property-1.1.1.tgz#c35f7cd0ab09883480d12ac5cb213715587800b3"

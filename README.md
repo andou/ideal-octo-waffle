@@ -60,8 +60,17 @@ cdk deploy --outputs-file ./cdk-outputs.json
 aws apigateway get-api-key --api-key $(cat cdk-outputs.json | jq -r '."ideal-octo-waffle-dev-main-stack".apiKeyId') --include-value | jq -r '.value'
 ```
 
-### Retrieve the bucket S3 where to upload files
+### Retrieve the S3 bucket where to upload files
 
 ```
 cat cdk-outputs.json | jq -r '."ideal-octo-waffle-dev-main-stack".s3UrlForObject'
+```
+
+### Upload some data
+
+**_NOTE_** Change `dev` in the command below accordingly to the environment you have choose,
+
+```
+aws s3 cp sample/products_10.csv $(cat cdk-outputs.json | jq -r '."ideal-octo-waffle-dev-main-stack".s3UrlForObject')/products/products_10.csv
+aws s3 cp sample/stocks_10.csv $(cat cdk-outputs.json | jq -r '."ideal-octo-waffle-dev-main-stack".s3UrlForObject')/stock/stocks_10.csv
 ```
