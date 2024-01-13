@@ -19,7 +19,7 @@ git clone git@github.com:andou/ideal-octo-waffle.git
 ### Install dependencies
 
 ```
-yarn
+yarn && yarn --cwd ./logic/products && yarn --cwd ./logic/import
 ```
 
 ### Choose an environment
